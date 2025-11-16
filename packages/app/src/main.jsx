@@ -1,7 +1,7 @@
 import { App } from "./App.jsx";
 import { router } from "./router";
 import { BASE_URL } from "./constants.js";
-import { createRoot } from "react-dom/client";
+import { createRoot } from "react/client";
 import { loadCartFromStorage } from "./services/index.js";
 
 /**
