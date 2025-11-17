@@ -21,7 +21,7 @@ export const normalizeNode = (node: VNode): VNode | null => {
   }
 
   // 원시 타입(string, number 등)은 텍스트 노드로 변환
-  if (typeof node !== "object" || node.type === undefined) {
+  if (typeof node !== "object") {
     return createTextElement(node);
   }
 
@@ -60,6 +60,7 @@ export const createElement = (
   // children을 평탄화하고 정규화
   const flattenChildren = (children: any[]): VNode[] => {
     const result: VNode[] = [];
+
     for (const child of children) {
       if (Array.isArray(child)) {
         result.push(...flattenChildren(child));
@@ -70,6 +71,7 @@ export const createElement = (
         }
       }
     }
+
     return result;
   };
 
@@ -79,7 +81,7 @@ export const createElement = (
   if (children.length > 0) {
     return {
       type,
-      key: key === null || key === undefined ? null : key,
+      key: key != null ? key : null,
       props: {
         ...props,
         children,
@@ -89,7 +91,7 @@ export const createElement = (
 
   return {
     type,
-    key: key === null || key === undefined ? null : key,
+    key: key != null ? key : null,
     props,
   };
 };
@@ -108,7 +110,7 @@ export const createChildPath = (
   // 여기를 구현하세요.
 
   // key가 있으면 key 기반으로 경로 생성
-  if (key !== null) {
+  if (key != null) {
     return `${parentPath}/${key}`;
   }
 
@@ -116,17 +118,23 @@ export const createChildPath = (
   // 같은 타입의 형제들 중에서의 인덱스를 계산
   if (siblings && nodeType) {
     const sameTypeIndex = siblings.slice(0, index).filter((sibling) => sibling && sibling.type === nodeType).length;
+
     let typeName: string;
-    if (typeof nodeType === "string") {
-      typeName = nodeType;
-    } else if (typeof nodeType === "symbol") {
-      typeName = nodeType.toString();
-    } else if (typeof nodeType === "function") {
-      // 함수 컴포넌트는 displayName 또는 name 사용
-      typeName = (nodeType as any).displayName || (nodeType as any).name || "component";
-    } else {
-      typeName = "component";
+
+    switch (typeof nodeType) {
+      case "string":
+        typeName = nodeType;
+        break;
+      case "symbol":
+        typeName = nodeType.toString();
+        break;
+      case "function":
+        typeName = (nodeType as any).displayName || (nodeType as any).name || "component";
+        break;
+      default:
+        typeName = "component";
     }
+
     return `${parentPath}/${typeName}:${sameTypeIndex}`;
   }
 
