@@ -211,8 +211,13 @@ export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElem
 /**
  * 인스턴스를 부모 DOM에 삽입합니다.
  * anchor 노드가 주어지면 그 앞에 삽입하여 순서를 보장합니다.
+ *
+ * 사용 사례:
+ * - 새로 생성된 인스턴스를 DOM에 추가할 때
+ * - 특정 위치(anchor) 앞에 인스턴스를 삽입할 때
+ * - Fragment나 Component처럼 여러 DOM 노드를 가진 인스턴스를 한 번에 삽입할 때
+ * - reconcileChildren에서 자식 순서를 재배치할 때
  */
-// 안 쓰는 듯?
 export const insertInstance = (
   parentDom: HTMLElement,
   instance: Instance | null,
@@ -226,6 +231,12 @@ export const insertInstance = (
 
   const domNodes = getDomNodes(instance);
   for (const node of domNodes) {
+    // 이미 올바른 위치에 있으면 건너뜀
+    if (node.parentNode === parentDom && node.nextSibling === anchor) {
+      continue;
+    }
+
+    // anchor가 있으면 그 앞에 삽입, 없으면 맨 뒤에 추가
     if (anchor) {
       parentDom.insertBefore(node, anchor);
     } else {

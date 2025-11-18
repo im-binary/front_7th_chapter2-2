@@ -1,7 +1,7 @@
 import { context } from "./context";
 import { Fragment, NodeTypes, TEXT_ELEMENT } from "./constants";
 import { Instance, VNode } from "./types";
-import { getDomNodes, removeInstance, setDomProps, updateDomProps } from "./dom";
+import { getDomNodes, insertInstance, removeInstance, setDomProps, updateDomProps } from "./dom";
 import { createChildPath } from "./elements";
 
 /**
@@ -246,33 +246,20 @@ const reconcileChildren = (
   }
 
   // DOM 순서 조정 - 모든 자식을 올바른 순서로 재배치
-  let lastPlacedDom: Node | null = null;
+  let anchor: HTMLElement | Text | null = null;
 
-  for (let i = 0; i < resultChildren.length; i++) {
+  // 역순으로 순회하면서 각 인스턴스를 anchor 앞에 삽입
+  for (let i = resultChildren.length - 1; i >= 0; i--) {
     const instance = resultChildren[i];
     if (!instance) continue;
 
+    // insertInstance를 사용하여 인스턴스를 올바른 위치에 배치
+    insertInstance(parentDom, instance, anchor);
+
+    // 다음 인스턴스를 위한 anchor 업데이트 (현재 인스턴스의 첫 DOM 노드)
     const domNodes = getDomNodes(instance);
-
-    for (const domNode of domNodes) {
-      if (domNode.parentNode !== parentDom) continue;
-
-      // 이전에 배치된 DOM 노드 다음에 와야 함
-      if (lastPlacedDom) {
-        // lastPlacedDom 다음에 현재 노드가 있어야 함
-        const nextSibling: ChildNode | null = lastPlacedDom.nextSibling;
-        if (nextSibling !== domNode) {
-          // 위치가 잘못되었으면 올바른 위치로 이동
-          parentDom.insertBefore(domNode, nextSibling);
-        }
-      } else {
-        // 첫 번째 노드는 맨 앞에 있어야 함
-        if (parentDom.firstChild !== domNode) {
-          parentDom.insertBefore(domNode, parentDom.firstChild);
-        }
-      }
-
-      lastPlacedDom = domNode;
+    if (domNodes.length > 0) {
+      anchor = domNodes[0];
     }
   }
 
