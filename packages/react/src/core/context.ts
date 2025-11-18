@@ -51,7 +51,7 @@ export const context: Context = {
       // componentStack의 마지막 요소를 반환해야 합니다.
       // 스택이 비어있으면 '훅은 컴포넌트 내부에서만 호출되어야 한다'는 에러를 발생시켜야 합니다.
       if (this.componentStack.length === 0) {
-        throw new Error("Hooks can only be called inside a component");
+        throw new Error("훅은 컴포넌트 내부에서만 호출되어야 한다");
       }
       return this.componentStack[this.componentStack.length - 1];
     },
