@@ -26,27 +26,23 @@ export const reconcile = (
   // 4. 타입과 키가 같으면 인스턴스를 업데이트합니다. (update)
   //    - DOM 요소: updateDomProps로 속성 업데이트 후 자식 재조정
   //    - 컴포넌트: 컴포넌트 함수 재실행 후 자식 재조정
-
-  // 1. 새 노드가 null이면 기존 인스턴스를 제거 (unmount)
-  if (node === null) {
+  if (node == null) {
     if (instance) {
       removeInstance(parentDom, instance);
     }
+
     return null;
   }
 
-  // 2. 기존 인스턴스가 없으면 새 노드를 마운트 (mount)
   if (!instance) {
     return mount(parentDom, node, path);
   }
 
-  // 3. 타입이나 키가 다르면 기존 인스턴스를 제거하고 새로 마운트
   if (instance.node.type !== node.type || instance.key !== node.key) {
     removeInstance(parentDom, instance);
     return mount(parentDom, node, path);
   }
 
-  // 4. 타입과 키가 같으면 인스턴스를 업데이트 (update)
   return update(parentDom, instance, node, path);
 };
 
@@ -97,8 +93,11 @@ const mount = (parentDom: HTMLElement, node: VNode, path: string): Instance => {
     };
 
     // 컴포넌트 실행을 위한 훅 컨텍스트 설정
+    // 현재 컴포넌트 경로를 훅 스택에 추가
     context.hooks.componentStack.push(path);
+    // 이 컴포넌트의 훅 인덱스를 0으로 초기화
     context.hooks.cursor.set(path, 0);
+    // 이 컴포넌트를 방문 목록에 추가합니다.
     context.hooks.visited.add(path);
 
     const childNode = type(props);
@@ -203,7 +202,7 @@ const reconcileChildren = (
   const usedOldChildren = new Set<Instance>();
 
   for (const oldChild of oldChildren) {
-    if (oldChild && oldChild.key !== null) {
+    if (oldChild && oldChild.key != null) {
       oldChildrenByKey.set(oldChild.key, oldChild);
     } else if (oldChild) {
       oldChildrenWithoutKey.push(oldChild);
@@ -221,7 +220,7 @@ const reconcileChildren = (
     let oldChild: Instance | null = null;
 
     // key가 있으면 key로 매칭
-    if (newKey !== null) {
+    if (newKey != null) {
       oldChild = oldChildrenByKey.get(newKey) || null;
       if (oldChild) {
         oldChildrenByKey.delete(newKey);
