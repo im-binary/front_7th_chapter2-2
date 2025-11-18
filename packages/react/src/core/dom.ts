@@ -8,37 +8,130 @@ const isChildrenProp = (key: string) => key === "children";
 const isAttributeProp = (key: string) => key.startsWith("data-") || key.startsWith("aria-");
 
 /**
+ * 단일 속성을 DOM에 설정합니다.
+ */
+const setProp = ({ dom, key, value }: { dom: HTMLElement; key: string; value: any }): void => {
+  if (isEventProp(key)) {
+    const eventType = key.toLowerCase().substring(2);
+    dom.addEventListener(eventType, value);
+    return;
+  }
+
+  if (isStyleProp(key)) {
+    Object.assign(dom.style, value);
+    return;
+  }
+
+  if (key === "className") {
+    dom.className = value;
+    return;
+  }
+
+  if (isAttributeProp(key)) {
+    dom.setAttribute(key, value);
+    return;
+  }
+
+  if (key in dom) {
+    (dom as any)[key] = value;
+    return;
+  }
+
+  dom.setAttribute(key, value);
+};
+
+/**
+ * 단일 속성을 DOM에서 제거합니다.
+ */
+const removeProp = ({ dom, key, oldValue }: { dom: HTMLElement; key: string; oldValue?: any }): void => {
+  if (isEventProp(key)) {
+    if (oldValue) {
+      const eventType = key.toLowerCase().substring(2);
+      dom.removeEventListener(eventType, oldValue);
+    }
+    return;
+  }
+
+  if (isStyleProp(key)) {
+    Object.keys(oldValue || {}).forEach((styleProp) => {
+      (dom.style as any)[styleProp] = "";
+    });
+    return;
+  }
+
+  if (key === "className") {
+    dom.className = "";
+    return;
+  }
+
+  if (isAttributeProp(key)) {
+    dom.removeAttribute(key);
+    return;
+  }
+
+  if (key in dom) {
+    (dom as any)[key] = "";
+    return;
+  }
+
+  dom.removeAttribute(key);
+};
+
+/**
  * DOM 요소에 속성(props)을 설정합니다.
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any> = {}): void => {
-  // 여기를 구현하세요.
-
-  if (!props) return;
+  if (!props) {
+    return;
+  }
 
   Object.keys(props).forEach((key) => {
     if (isChildrenProp(key)) {
       return;
     }
 
-    const value = props[key];
+    setProp({ dom, key, value: props[key] });
+  });
+};
 
-    if (isEventProp(key)) {
-      const eventType = key.toLowerCase().substring(2);
-      dom.addEventListener(eventType, value);
-    } else if (isStyleProp(key)) {
-      Object.assign(dom.style, value);
-    } else if (key === "className") {
-      dom.className = value;
-    } else if (isAttributeProp(key)) {
-      // data-*, aria-* 속성은 항상 setAttribute 사용
-      dom.setAttribute(key, value);
-    } else if (key in dom) {
-      // DOM 프로퍼티로 설정 (checked, value, disabled 등)
-      (dom as any)[key] = value;
-    } else {
-      // 일반 속성
-      dom.setAttribute(key, value);
+/**
+ * 이전에는 있었지만 새로운 props에는 없는 속성들을 제거합니다.
+ */
+const removeMissingProps = (dom: HTMLElement, prevProps: Record<string, any>, nextProps: Record<string, any>): void => {
+  Object.keys(prevProps).forEach((key) => {
+    if (isChildrenProp(key)) {
+      return;
+    }
+
+    // 새로운 props에 없으면 제거
+    if (!(key in nextProps)) {
+      removeProp({ dom, key, oldValue: prevProps[key] });
+    }
+  });
+};
+
+/**
+ * 값이 변경된 속성들만 업데이트합니다.
+ */
+const updateChangedProps = (dom: HTMLElement, prevProps: Record<string, any>, nextProps: Record<string, any>): void => {
+  Object.keys(nextProps).forEach((key) => {
+    if (isChildrenProp(key)) {
+      return;
+    }
+
+    const value = nextProps[key];
+    const prevValue = prevProps[key];
+
+    // 값이 변경된 경우에만 업데이트
+    if (value !== prevValue) {
+      // 이벤트 핸들러가 변경된 경우 이전 것을 먼저 제거
+      if (isEventProp(key) && prevValue) {
+        const eventType = key.toLowerCase().substring(2);
+        dom.removeEventListener(eventType, prevValue);
+      }
+
+      setProp({ dom, key, value });
     }
   });
 };
@@ -52,67 +145,11 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  // 1단계: 제거된 속성 처리
+  removeMissingProps(dom, prevProps, nextProps);
 
-  // 이전 props 제거
-  Object.keys(prevProps).forEach((key) => {
-    if (isChildrenProp(key)) {
-      return;
-    }
-
-    if (!(key in nextProps)) {
-      if (isEventProp(key)) {
-        const eventType = key.toLowerCase().substring(2);
-        dom.removeEventListener(eventType, prevProps[key]);
-      } else if (isStyleProp(key)) {
-        // 스타일 제거
-        Object.keys(prevProps[key] || {}).forEach((styleProp) => {
-          (dom.style as any)[styleProp] = "";
-        });
-      } else if (key === "className") {
-        dom.className = "";
-      } else if (isAttributeProp(key)) {
-        dom.removeAttribute(key);
-      } else if (key in dom) {
-        (dom as any)[key] = "";
-      } else {
-        dom.removeAttribute(key);
-      }
-    }
-  });
-
-  // 새로운 props 설정
-  Object.keys(nextProps).forEach((key) => {
-    if (isChildrenProp(key)) {
-      return;
-    }
-
-    const value = nextProps[key];
-    const prevValue = prevProps[key];
-
-    if (value !== prevValue) {
-      // 이전 이벤트 리스너 제거
-      if (isEventProp(key) && prevValue) {
-        const eventType = key.toLowerCase().substring(2);
-        dom.removeEventListener(eventType, prevValue);
-      }
-
-      if (isEventProp(key)) {
-        const eventType = key.toLowerCase().substring(2);
-        dom.addEventListener(eventType, value);
-      } else if (isStyleProp(key)) {
-        Object.assign(dom.style, value);
-      } else if (key === "className") {
-        dom.className = value;
-      } else if (isAttributeProp(key)) {
-        dom.setAttribute(key, value);
-      } else if (key in dom) {
-        (dom as any)[key] = value;
-      } else {
-        dom.setAttribute(key, value);
-      }
-    }
-  });
+  // 2단계: 변경된 속성 업데이트
+  updateChangedProps(dom, prevProps, nextProps);
 };
 
 /**
@@ -140,7 +177,7 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
 };
 
 /**
- * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
+ * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다. -> DOM에서 위치를 지정할 때 필요함
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
   // 여기를 구현하세요.
@@ -175,6 +212,7 @@ export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElem
  * 인스턴스를 부모 DOM에 삽입합니다.
  * anchor 노드가 주어지면 그 앞에 삽입하여 순서를 보장합니다.
  */
+// 안 쓰는 듯?
 export const insertInstance = (
   parentDom: HTMLElement,
   instance: Instance | null,
