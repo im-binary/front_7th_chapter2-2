@@ -74,7 +74,9 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
 
   const setState = (nextValue: T | ((prev: T) => T)) => {
     const currentHooks = context.hooks.state.get(path);
-    if (!currentHooks) return;
+    if (!currentHooks) {
+      return;
+    }
 
     const prevState = currentHooks[cursor];
     const newState = typeof nextValue === "function" ? (nextValue as (prev: T) => T)(prevState) : nextValue;
@@ -113,6 +115,10 @@ export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): 
   const prevHook: EffectHook | undefined = hookState[cursor];
 
   // 의존성 비교
+  // !prevHook - 첫 렌더링 (이전 훅 없음)
+  // !prevHook.deps - 이전에 의존성이 없었음
+  // !deps - 지금 의존성이 없음 (매번 실행)
+  // !shallowEquals(prevHook.deps, deps) - 의존성이 변경됨
   const hasChanged = !prevHook || !prevHook.deps || !deps || !shallowEquals(prevHook.deps, deps);
 
   // 현재 훅 생성 또는 업데이트
